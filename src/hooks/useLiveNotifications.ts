@@ -45,6 +45,10 @@ export function useLiveNotifications() {
   const ijinGroup = usePermission("hr_permit_group");
   const ijinDepartment = usePermission("hr_permit_department");
   const ijinPersonalia = usePermission("hr_permit_hr");
+  const fingerSection = usePermission("hr_finger_error_section");
+  const fingerGroup = usePermission("hr_finger_error_group");
+  const fingerDepartment = usePermission("hr_finger_error_department");
+  const fingerPersonalia = usePermission("hr_finger_error_hr");
   const enabled =
     isAuthenticated &&
     Boolean(token) &&
@@ -55,7 +59,11 @@ export function useLiveNotifications() {
       ijinSection.canApprove ||
       ijinGroup.canApprove ||
       ijinDepartment.canApprove ||
-      ijinPersonalia.canApprove);
+      ijinPersonalia.canApprove ||
+      fingerSection.canApprove ||
+      fingerGroup.canApprove ||
+      fingerDepartment.canApprove ||
+      fingerPersonalia.canApprove);
 
   const [items, setItems] = useState<LiveNotice[]>([]);
   const [unseen, setUnseen] = useState(false);

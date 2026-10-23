@@ -785,6 +785,87 @@ export const hrMasterService = {
       note: note ?? null,
     }),
 
+  listFingerErrorGroup: (params?: Record<string, string | number>) => {
+    const cleaned = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(
+            ([, v]) => v !== undefined && v !== null && String(v) !== "",
+          ),
+        )
+      : undefined;
+    const qs =
+      cleaned && Object.keys(cleaned).length > 0
+        ? `?${new URLSearchParams(
+            Object.entries(cleaned).map(([k, v]) => [k, String(v)]),
+          ).toString()}`
+        : "";
+    return api.get<ApiResponse<Record<string, unknown>[]>>(
+      `/hr/finger-error/group${qs}`,
+    );
+  },
+
+  approveFingerErrorGroup: (id: number | string) =>
+    api.post<ApiResponse<null>>(`/hr/finger-error/${id}/approve-group`),
+
+  rejectFingerErrorGroup: (id: number | string, note?: string) =>
+    api.post<ApiResponse<null>>(`/hr/finger-error/${id}/reject-group`, {
+      note: note ?? null,
+    }),
+
+  listFingerErrorDepartment: (params?: Record<string, string | number>) => {
+    const cleaned = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(
+            ([, v]) => v !== undefined && v !== null && String(v) !== "",
+          ),
+        )
+      : undefined;
+    const qs =
+      cleaned && Object.keys(cleaned).length > 0
+        ? `?${new URLSearchParams(
+            Object.entries(cleaned).map(([k, v]) => [k, String(v)]),
+          ).toString()}`
+        : "";
+    return api.get<ApiResponse<Record<string, unknown>[]>>(
+      `/hr/finger-error/department${qs}`,
+    );
+  },
+
+  approveFingerErrorDepartment: (id: number | string) =>
+    api.post<ApiResponse<null>>(`/hr/finger-error/${id}/approve-department`),
+
+  rejectFingerErrorDepartment: (id: number | string, note?: string) =>
+    api.post<ApiResponse<null>>(`/hr/finger-error/${id}/reject-department`, {
+      note: note ?? null,
+    }),
+
+  listFingerErrorDepartmentExceptions: () =>
+    api.get<
+      ApiResponse<
+        Array<{
+          id: number;
+          section_id: number;
+          section_name: string | null;
+          job_rank: number;
+          job_rank_name: string | null;
+        }>
+      >
+    >("/hr/finger-error/department-exceptions"),
+
+  createFingerErrorDepartmentException: (payload: {
+    section_id: number;
+    job_rank: number;
+  }) =>
+    api.post<ApiResponse<{ id: number }>>(
+      "/hr/finger-error/department-exceptions",
+      payload,
+    ),
+
+  deleteFingerErrorDepartmentException: (id: number | string) =>
+    api.delete<ApiResponse<null>>(
+      `/hr/finger-error/department-exceptions/${id}`,
+    ),
+
   exportFingerErrorHr: async (params?: {
     month?: string;
     department?: string;

@@ -55,6 +55,7 @@ import PermitDetailModal from "./PermitDetailModal";
 import PermitFormModal from "./PermitFormModal";
 import PermitTable from "./PermitTable";
 import PermitDepartmentExceptionPanel from "./PermitDepartmentExceptionPanel";
+import FingerprintDepartmentExceptionPanel from "./FingerprintDepartmentExceptionPanel";
 import FingerprintCancelModal from "./FingerprintCancelModal";
 import FingerprintDetailModal from "./FingerprintDetailModal";
 import FingerprintFormModal from "./FingerprintFormModal";
@@ -1416,6 +1417,8 @@ export default function MasterTablePage() {
   const ijinHrPerm = usePermission("hr_permit_hr");
   const fingerPerm = usePermission("hr_finger_error");
   const fingerSectionPerm = usePermission("hr_finger_error_section");
+  const fingerGroupPerm = usePermission("hr_finger_error_group");
+  const fingerDepartmentPerm = usePermission("hr_finger_error_department");
   const fingerHrPerm = usePermission("hr_finger_error_hr");
   const editPolicyPerm = usePermission("hr_edit_policy");
   const isWorkPattern = resource === "work-pattern";
@@ -1449,9 +1452,21 @@ export default function MasterTablePage() {
         : ijinSectionPerm;
   const isPermit = resource === "permit" || isPermitQueue;
   const isFingerprintSection = pathname.startsWith("/section/finger-error");
+  const isFingerprintGroup = pathname.startsWith("/group/finger-error");
+  const isFingerprintDepartment = pathname.startsWith("/department/finger-error");
   const isFingerprintHr = pathname.startsWith("/personalia/finger-error");
-  const isFingerprintQueue = isFingerprintSection || isFingerprintHr;
-  const fingerQueuePerm = isFingerprintHr ? fingerHrPerm : fingerSectionPerm;
+  const isFingerprintQueue =
+    isFingerprintSection ||
+    isFingerprintGroup ||
+    isFingerprintDepartment ||
+    isFingerprintHr;
+  const fingerQueuePerm = isFingerprintHr
+    ? fingerHrPerm
+    : isFingerprintDepartment
+      ? fingerDepartmentPerm
+      : isFingerprintGroup
+        ? fingerGroupPerm
+        : fingerSectionPerm;
   const isFingerprint = resource === "finger-error" || isFingerprintQueue;
   const levelCode = String(user?.level_code ?? "").toLowerCase();
   const ijinHrCanFilterType =
@@ -1700,6 +1715,14 @@ export default function MasterTablePage() {
         ? await hrMasterService.listFingerErrorHr(
             Object.keys(listParams).length > 0 ? listParams : undefined,
           )
+        : isFingerprintDepartment
+        ? await hrMasterService.listFingerErrorDepartment(
+            Object.keys(listParams).length > 0 ? listParams : undefined,
+          )
+        : isFingerprintGroup
+        ? await hrMasterService.listFingerErrorGroup(
+            Object.keys(listParams).length > 0 ? listParams : undefined,
+          )
         : isFingerprintSection
         ? await hrMasterService.listFingerErrorSection(
             Object.keys(listParams).length > 0 ? listParams : undefined,
@@ -1790,6 +1813,8 @@ export default function MasterTablePage() {
     ijinHrCanFilterType,
     isFingerprint,
     isFingerprintSection,
+    isFingerprintGroup,
+    isFingerprintDepartment,
     isFingerprintHr,
     fingerHrCanFilterType,
   ]);
@@ -2273,9 +2298,13 @@ export default function MasterTablePage() {
         if (action === "approve") {
           const approve = isFingerprintHr
             ? hrMasterService.approveFingerErrorHr
-            : isFingerprintSection
-              ? hrMasterService.approveFingerErrorSection
-              : isPermitHr
+            : isFingerprintDepartment
+              ? hrMasterService.approveFingerErrorDepartment
+              : isFingerprintGroup
+                ? hrMasterService.approveFingerErrorGroup
+                : isFingerprintSection
+                  ? hrMasterService.approveFingerErrorSection
+                  : isPermitHr
             ? hrMasterService.approvePermitHr
             : isPermitDepartment
               ? hrMasterService.approvePermitDepartment
@@ -2294,9 +2323,13 @@ export default function MasterTablePage() {
         } else {
           const reject = isFingerprintHr
             ? hrMasterService.rejectFingerErrorHr
-            : isFingerprintSection
-              ? hrMasterService.rejectFingerErrorSection
-              : isPermitHr
+            : isFingerprintDepartment
+              ? hrMasterService.rejectFingerErrorDepartment
+              : isFingerprintGroup
+                ? hrMasterService.rejectFingerErrorGroup
+                : isFingerprintSection
+                  ? hrMasterService.rejectFingerErrorSection
+                  : isPermitHr
             ? hrMasterService.rejectPermitHr
             : isPermitDepartment
               ? hrMasterService.rejectPermitDepartment
@@ -2333,6 +2366,8 @@ export default function MasterTablePage() {
       }
     },
     [
+      isFingerprintDepartment,
+      isFingerprintGroup,
       isFingerprintHr,
       isFingerprintSection,
       isPermitDepartment,
@@ -2734,6 +2769,7 @@ export default function MasterTablePage() {
           <>
             <SicknessDepartmentExceptionPanel canUpdate={editPolicyPerm.canUpdate} />
             <PermitDepartmentExceptionPanel canUpdate={editPolicyPerm.canUpdate} />
+            <FingerprintDepartmentExceptionPanel canUpdate={editPolicyPerm.canUpdate} />
           </>
         )}
 
@@ -3155,6 +3191,10 @@ export default function MasterTablePage() {
                 ? "Klik baris untuk ubah Status Absen (D / N / OFF). Jendela edit (H-n) mengikuti hr.roster_edit_policy per level."
               : isFingerprintHr
                 ? "Personalia melihat semua status fingerprint pada bulan ini. Setujui dan Tolak hanya untuk Waiting approve by HR."
+              : isFingerprintDepartment
+                ? "Antrean Department fingerprint: jabatan Section Head ke atas, plus pengecualian di Edit Policy."
+              : isFingerprintGroup
+                ? "Antrean Group Leader fingerprint: hanya karyawan LS."
               : isFingerprintSection
                 ? "Antrean Section fingerprint: jabatan di bawah Section Head."
               : isFingerprint

@@ -145,6 +145,8 @@ Boot order after login:
 | `hr_permit_hr` | `/personalia/permit` |
 | `hr_finger_error` | `/reconciliation/finger-error` |
 | `hr_finger_error_section` | `/section/finger-error` |
+| `hr_finger_error_group` | `/group/finger-error` |
+| `hr_finger_error_department` | `/department/finger-error` |
 | `hr_finger_error_hr` | `/personalia/finger-error` |
 | `hr_menu_privilege` | `/master/menu-privilege` |
 | `hr_level_permissions` | `/master/level-permissions` |
@@ -206,7 +208,7 @@ One generic page, driven by `RESOURCE_META` in `MasterTablePage.tsx` and `HrMast
 | `roster` | `/hr/roster[/:id]` + export + edit-policy | list + update Status Absen (`remark`) + Excel export; edit window from `hr.edit_policy` module `roster_kerja` |
 | `sickness` | `/hr/sickness[/:id]` + lookup + multipart create + cancel; section/group/department/hr queues | CRUD pending rows + multi bukti upload; month/dept/section/jabatan/progress/status_worker filters; parent+child merge; evidence links from `evidence_paths`. `/section/sickness`, `/group/sickness`, and `/department/sickness` reuse this table (Detail / Setujui / Tolak only). `/personalia/sickness` exports the current filters to Excel (`GET /hr/sickness/hr/export`: sheet Ringkasan + Detail). The SIS/LS type filter shows only when the account already sees both groups. Department exceptions are edited on Edit Policy. Module shape to copy: `myhr-backend/docs/MODULE_PATTERN_SAKIT.md`. |
 | `permit` | `/hr/permit[/:id]` + lookup + multipart create + cancel; same queues as sickness | Same flow as sickness under Permit menus (`hr_permit`, `hr_permit_section`, `hr_permit_group`, `hr_permit_department`, `hr_permit_hr`). Export: `GET /hr/permit/hr/export`. |
-| `finger-error` | `/hr/finger-error[/:id]` + lookup + multipart create + cancel + import/example; section + hr queues only | Fingerprint correction (date, finger_in/out, shift, remark, category `workers_fingerprint`). Bulk import: kategori + mode (IN/OUT/IN+OUT) dipilih di modal; Excel tanpa category/mode; jam kosong diisi default per shift. Menus: `hr_finger_error`, `hr_finger_error_section`, `hr_finger_error_hr`. No group/department. Export: `GET /hr/finger-error/hr/export`. |
+| `finger-error` | `/hr/finger-error[/:id]` + lookup + multipart create + cancel + import/example; section/group/department/hr queues | Fingerprint correction (date, finger_in/out, shift, remark, category `workers_fingerprint`). Approval same as sakit/ijin: Section (below SH), Group (LS), Department (high ranks + exceptions on Edit Policy), then HR. Bulk import: kategori + mode di modal. Menus: `hr_finger_error*` including `_group` / `_department`. Export: `GET /hr/finger-error/hr/export`. |
 | `edit-policy` | `/hr/edit-policy[/:id]` + modules | CRUD multi-module (`hr.edit_policy`); module dropdown + **Tambah module** (no separate menu) |
 | `menu-privilege` | `GET /hr/menu-privilege` | read-only |
 | `level-permissions` | `GET/PUT /hr/level-permissions` | **matrix editor** (`LevelPermissionsPage`) |
