@@ -69,13 +69,14 @@ export default function SignInForm() {
     <div>
       <div className="mb-7">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-500">
-          Sign in
+          Masuk ke MyHR
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white/90">
-          Welcome back
+          Selamat datang
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-          Enter your credentials to manage human resources operations.
+          Masukkan username dan password akun MyHR Anda untuk membuka
+          dashboard dan menu sesuai peran.
         </p>
       </div>
 
@@ -86,7 +87,7 @@ export default function SignInForm() {
             id="signin-username"
             name="username"
             autoComplete="username"
-            placeholder="Enter your username"
+            placeholder="Username akun MyHR"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             disabled={loading || result?.status === "success"}
@@ -101,7 +102,7 @@ export default function SignInForm() {
               name="password"
               autoComplete="current-password"
               type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
+              placeholder="Password akun MyHR"
               className="pr-11"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -130,7 +131,7 @@ export default function SignInForm() {
             checked={isChecked}
             onChange={setIsChecked}
             disabled={loading || result?.status === "success"}
-            label="Keep me logged in"
+            label="Tetap masuk di perangkat ini"
           />
         </div>
 
@@ -144,10 +145,10 @@ export default function SignInForm() {
             {loading ? (
               <>
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Signing in…
+                Memverifikasi…
               </>
             ) : (
-              "Sign in to MyHR"
+              "Masuk ke MyHR"
             )}
           </span>
         </button>
