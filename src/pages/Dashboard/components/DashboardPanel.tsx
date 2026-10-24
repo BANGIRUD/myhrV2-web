@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import TableLoadingOverlay from "../../../components/ui/table/TableLoadingOverlay";
 
 type DashboardPanelProps = {
   title: string;
@@ -44,7 +45,7 @@ export default function DashboardPanel({
         ) : null}
       </div>
     );
-  } else if (loading) {
+  } else if (loading && empty) {
     body = (
       <div className="space-y-3 p-5 md:p-6" aria-busy="true" aria-live="polite">
         {[1, 2, 3, 4].map((i) => (
@@ -62,7 +63,20 @@ export default function DashboardPanel({
       </div>
     );
   } else {
-    body = children;
+    body = (
+      <div className="relative">
+        {loading ? <TableLoadingOverlay label="Memuat panel…" /> : null}
+        <div
+          className={
+            loading
+              ? "pointer-events-none opacity-50 transition-opacity"
+              : undefined
+          }
+        >
+          {children}
+        </div>
+      </div>
+    );
   }
 
   return (

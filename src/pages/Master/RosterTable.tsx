@@ -1,4 +1,5 @@
 import Badge from "../../components/ui/badge/Badge";
+import TableLoadingOverlay from "../../components/ui/table/TableLoadingOverlay";
 import { formatDisplayDate } from "../../utils/dateShift";
 
 type Props = {
@@ -85,14 +86,26 @@ export default function RosterTable({
             Baris harian hasil generate dari Pola Kerja — dikelompokkan per NRP.
           </p>
         </div>
-        {!loading && (
+        {loading ? (
+          <p className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+            <span
+              className="h-3 w-3 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600 dark:border-brand-500/40 dark:border-t-brand-300"
+              aria-hidden
+            />
+            Memuat…
+          </p>
+        ) : (
           <p className="shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-white/10 dark:text-gray-300">
             {groups.length} karyawan · {rows.length} baris
           </p>
         )}
       </div>
 
-      <div className="max-h-[min(72vh,760px)] overflow-auto">
+      <div className="relative">
+        {loading && rows.length > 0 ? (
+          <TableLoadingOverlay label="Memuat roster kerja…" />
+        ) : null}
+        <div className="max-h-[min(72vh,760px)] overflow-auto">
         <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
           <thead className="sticky top-0 z-20">
             <tr className="bg-slate-100/95 text-xs font-semibold uppercase tracking-wide text-slate-600 backdrop-blur-sm dark:bg-gray-800/95 dark:text-gray-300">
@@ -113,8 +126,14 @@ export default function RosterTable({
               </th>
             </tr>
           </thead>
-          <tbody>
-            {loading ? (
+          <tbody
+            className={
+              loading && rows.length > 0
+                ? "pointer-events-none opacity-50 transition-opacity"
+                : undefined
+            }
+          >
+            {loading && rows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-5 py-14 text-center">
                   <div className="inline-flex flex-col items-center gap-2 text-sm text-gray-500">
@@ -243,6 +262,7 @@ export default function RosterTable({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

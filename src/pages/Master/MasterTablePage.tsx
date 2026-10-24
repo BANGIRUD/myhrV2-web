@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
+import TableLoadingOverlay from "../../components/ui/table/TableLoadingOverlay";
 import { CloseIcon } from "../../icons";
 import { ApiError } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
@@ -3084,7 +3085,13 @@ export default function MasterTablePage() {
           />
         ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-          <div className="max-h-[min(70vh,720px)] overflow-auto">
+          <div className="relative">
+            {loading && filtered.length > 0 ? (
+              <TableLoadingOverlay
+                label={`Memuat ${meta.title.toLowerCase()}…`}
+              />
+            ) : null}
+            <div className="max-h-[min(70vh,720px)] overflow-auto">
             <Table>
               <TableHeader className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
                 <TableRow>
@@ -3099,8 +3106,14 @@ export default function MasterTablePage() {
                   ))}
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {loading ? (
+              <TableBody
+                className={`divide-y divide-gray-100 dark:divide-gray-800${
+                  loading && filtered.length > 0
+                    ? " pointer-events-none opacity-50 transition-opacity"
+                    : ""
+                }`}
+              >
+                {loading && filtered.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={tableColumns.length}
@@ -3179,6 +3192,7 @@ export default function MasterTablePage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
         </div>
         )}

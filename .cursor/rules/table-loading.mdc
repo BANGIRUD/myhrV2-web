@@ -1,0 +1,53 @@
+---
+description: Loading UX for data tables (page/filter reload must show animation)
+globs: src/pages/**/*Table*.tsx,src/pages/Master/**/*.tsx,src/components/ui/table/**/*.tsx,src/pages/Dashboard/**/*.tsx
+alwaysApply: false
+---
+
+# Table loading UX
+
+Every server-driven table must show clear loading feedback on **first load** and on **page / filter / search reload**.
+
+## Component
+
+Use `src/components/ui/table/TableLoadingOverlay.tsx` for reload-with-rows.
+
+```tsx
+import TableLoadingOverlay from "../../components/ui/table/TableLoadingOverlay";
+```
+
+## Required pattern
+
+1. Keep previous rows while refetching (`setLoading(true)` without clearing rows first).
+2. Wrap the scrollable table in an outer `relative` container; overlay is a **sibling** of the scroll div (not inside `overflow-auto`), so it stays fixed over the viewport.
+3. When `loading && rows.length > 0` → render `<TableLoadingOverlay label="Memuat …" />` and dim tbody (`opacity-50 pointer-events-none`).
+4. When `loading && rows.length === 0` → full-row centered spinner / skeleton (first load).
+5. Header count chip (where present): while loading show small spinner + `Memuat…`; when idle show row count.
+
+```tsx
+<div className="relative">
+  {loading && rows.length > 0 ? (
+    <TableLoadingOverlay label="Memuat data …" />
+  ) : null}
+  <div className="max-h-[min(72vh,760px)] overflow-auto">
+    <table>…</table>
+  </div>
+</div>
+```
+
+Dashboard panels: `DashboardPanel` keeps children visible under the overlay when `loading && !empty` (rows still in state). First load (`loading && empty`) still uses the pulse skeleton.
+
+## Applied
+
+- `SicknessTable`, `PermitTable`, `FingerprintTable`
+- `WorkPatternTable`, `RosterTable`
+- Generic master table in `MasterTablePage`
+- `LevelPermissionsPage` matrix
+- `DashboardPanel` (Attendance / Pola Kerja / Unfit via shared panel)
+
+## Don't
+
+- Rely only on `opacity` without a spinner/overlay on page or filter change.
+- Put the overlay **inside** the `overflow-auto` scroller (it scrolls away).
+- Clear `rows` at the start of refetch just to force the empty-state spinner.
+- Replace children with skeleton when previous rows are still available.

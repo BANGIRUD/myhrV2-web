@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import Badge from "../../components/ui/badge/Badge";
+import TableLoadingOverlay from "../../components/ui/table/TableLoadingOverlay";
 import { hrMasterService } from "../../services/hrMaster";
 import { formatDisplayDate } from "../../utils/dateShift";
 
@@ -606,14 +607,26 @@ export default function PermitTable({
             horizontal untuk audit persetujuan.
           </p>
         </div>
-        {!loading && (
+        {loading ? (
+          <p className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+            <span
+              className="h-3 w-3 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600 dark:border-brand-500/40 dark:border-t-brand-300"
+              aria-hidden
+            />
+            Memuat…
+          </p>
+        ) : (
           <p className="shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-white/10 dark:text-gray-300">
             {rows.length} baris
           </p>
         )}
       </div>
 
-      <div className="max-h-[min(72vh,760px)] overflow-auto">
+      <div className="relative">
+        {loading && rows.length > 0 ? (
+          <TableLoadingOverlay label="Memuat data ijin…" />
+        ) : null}
+        <div className="max-h-[min(72vh,760px)] overflow-auto">
         <table className="min-w-[1280px] w-full border-separate border-spacing-0 text-left">
           <thead className="sticky top-0 z-20">
             <tr className="bg-slate-50/95 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 backdrop-blur-sm dark:bg-gray-800/95 dark:text-gray-500">
@@ -690,7 +703,13 @@ export default function PermitTable({
               ) : null}
             </tr>
           </thead>
-          <tbody className={loading && rows.length > 0 ? "opacity-60" : undefined}>
+          <tbody
+            className={
+              loading && rows.length > 0
+                ? "pointer-events-none opacity-50 transition-opacity"
+                : undefined
+            }
+          >
             {loading && rows.length === 0 ? (
               <tr>
                 <td
@@ -1000,6 +1019,7 @@ export default function PermitTable({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

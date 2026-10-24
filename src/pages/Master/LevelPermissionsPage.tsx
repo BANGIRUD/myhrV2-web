@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import Button from "../../components/ui/button/Button";
+import TableLoadingOverlay from "../../components/ui/table/TableLoadingOverlay";
 import { usePermission } from "../../hooks/usePermission";
 import {
   hrMasterService,
@@ -312,113 +313,127 @@ export default function LevelPermissionsPage() {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-          {loading ? (
+          {loading && rows.length === 0 ? (
             <div className="space-y-3 p-5 md:p-6" aria-busy="true">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
               ))}
             </div>
-          ) : rows.length === 0 ? (
+          ) : !loading && rows.length === 0 ? (
             <p className="px-5 py-12 text-center text-sm text-gray-500 dark:text-gray-400 md:px-6">
               No menus match the current filter.
             </p>
           ) : (
-            <div className="max-h-[36rem] overflow-auto">
-              <table className="min-w-full text-sm">
-                <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
-                  <tr className="border-b border-gray-200 dark:border-gray-800">
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
-                    >
-                      Menu
-                    </th>
-                    {FLAGS.map((flag) => (
+            <div className="relative">
+              {loading ? (
+                <TableLoadingOverlay label="Memuat level permissions…" />
+              ) : null}
+              <div className="max-h-[36rem] overflow-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
+                    <tr className="border-b border-gray-200 dark:border-gray-800">
                       <th
-                        key={flag.key}
                         scope="col"
-                        title={flag.hint}
-                        className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
                       >
-                        {flag.label}
+                        Menu
                       </th>
-                    ))}
-                  </tr>
-                  {canEdit ? (
-                    <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-900/80">
-                      <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
-                        Quick actions
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <div className="inline-flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setAllRead(true)}
-                            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
-                          >
-                            All
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAllRead(false)}
-                            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5"
-                          >
-                            None
-                          </button>
-                        </div>
-                      </td>
-                      <td colSpan={FLAGS.length - 1} />
+                      {FLAGS.map((flag) => (
+                        <th
+                          key={flag.key}
+                          scope="col"
+                          title={flag.hint}
+                          className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                        >
+                          {flag.label}
+                        </th>
+                      ))}
                     </tr>
-                  ) : null}
-                </thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const readable = asBool(row.can_read);
-                    const sidebarOff = !asBool(row.show_sidebar);
-                    return (
-                      <tr
-                        key={String(row.menu_id)}
-                        className="border-b border-gray-100 last:border-0 hover:bg-gray-50/70 dark:border-gray-800/80 dark:hover:bg-white/[0.03]"
-                      >
-                        <td className="px-4 py-2.5">
-                          <p className="font-medium text-gray-800 dark:text-white/90">
-                            {row.menu_name}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {row.menu_code}
-                            {row.parent_name ? ` · under ${row.parent_name}` : ""}
-                            {sidebarOff ? " · sidebar off in Menus" : ""}
-                            {!asBool(row.is_active) ? " · inactive" : ""}
-                          </p>
+                    {canEdit ? (
+                      <tr className="border-b border-gray-200 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-900/80">
+                        <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                          Quick actions
                         </td>
-                        {FLAGS.map((flag) => {
-                          const checked = asBool(row[flag.key]);
-                          const warnRead = flag.key === "can_read" && checked && sidebarOff;
-                          return (
-                            <td key={flag.key} className="px-2 py-2.5 text-center">
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                disabled={!canEdit || saving}
-                                onChange={() => toggle(Number(row.menu_id), flag.key)}
-                                aria-label={`${row.menu_name} ${flag.label}`}
-                                title={
-                                  warnRead
-                                    ? "Read is on, but Menus.show_sidebar is off — still hidden in sidebar"
-                                    : flag.hint
-                                }
-                                className={`size-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-50 ${
-                                  warnRead ? "ring-2 ring-warning-400" : ""
-                                } ${flag.key === "can_read" && readable ? "" : ""}`}
-                              />
-                            </td>
-                          );
-                        })}
+                        <td className="px-2 py-2 text-center">
+                          <div className="inline-flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setAllRead(true)}
+                              className="rounded px-1.5 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
+                            >
+                              All
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAllRead(false)}
+                              className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5"
+                            >
+                              None
+                            </button>
+                          </div>
+                        </td>
+                        <td colSpan={FLAGS.length - 1} />
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    ) : null}
+                  </thead>
+                  <tbody
+                    className={
+                      loading
+                        ? "pointer-events-none opacity-50 transition-opacity"
+                        : undefined
+                    }
+                  >
+                    {rows.map((row) => {
+                      const readable = asBool(row.can_read);
+                      const sidebarOff = !asBool(row.show_sidebar);
+                      return (
+                        <tr
+                          key={String(row.menu_id)}
+                          className="border-b border-gray-100 last:border-0 hover:bg-gray-50/70 dark:border-gray-800/80 dark:hover:bg-white/[0.03]"
+                        >
+                          <td className="px-4 py-2.5">
+                            <p className="font-medium text-gray-800 dark:text-white/90">
+                              {row.menu_name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {row.menu_code}
+                              {row.parent_name ? ` · under ${row.parent_name}` : ""}
+                              {sidebarOff ? " · sidebar off in Menus" : ""}
+                              {!asBool(row.is_active) ? " · inactive" : ""}
+                            </p>
+                          </td>
+                          {FLAGS.map((flag) => {
+                            const checked = asBool(row[flag.key]);
+                            const warnRead =
+                              flag.key === "can_read" && checked && sidebarOff;
+                            return (
+                              <td key={flag.key} className="px-2 py-2.5 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={!canEdit || saving || loading}
+                                  onChange={() =>
+                                    toggle(Number(row.menu_id), flag.key)
+                                  }
+                                  aria-label={`${row.menu_name} ${flag.label}`}
+                                  title={
+                                    warnRead
+                                      ? "Read is on, but Menus.show_sidebar is off — still hidden in sidebar"
+                                      : flag.hint
+                                  }
+                                  className={`size-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-50 ${
+                                    warnRead ? "ring-2 ring-warning-400" : ""
+                                  } ${flag.key === "can_read" && readable ? "" : ""}`}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
