@@ -91,6 +91,8 @@ export type ApiResponse<T> = {
   error?: string;
   meta?: {
     total?: number;
+    /** Employee detail: whether Edit Policy workers_grade allows revealing Grade */
+    can_view_grade?: boolean;
     status_counts?: {
       label: string;
       total: number;

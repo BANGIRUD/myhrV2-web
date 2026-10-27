@@ -15,7 +15,11 @@ export type HrMasterResource =
   | "edit-policy"
   | "menu-privilege"
   | "level-permissions"
-  | "submissions";
+  | "submissions"
+  /** Employees SIS (`/employees/sis`) — lists hr.workers via GET /hr/workers?source=sis */
+  | "sis"
+  /** Employees LS (`/employees/ls`) — lists hr.workers_vendor via GET /hr/workers?source=vendor */
+  | "ls";
 
 export type HrEditPolicyPayload = {
   module_code: string;
@@ -204,7 +208,109 @@ export const hrMasterService = {
             Object.entries(cleaned).map(([k, v]) => [k, String(v)]),
           ).toString()}`
         : "";
+    // Employees menus use short route slugs; API lives at /hr/workers?source=
+    if (resource === "sis" || resource === "ls") {
+      const source = resource === "sis" ? "sis" : "vendor";
+      const withSource = { ...(cleaned ?? {}), source };
+      const workersQs = `?${new URLSearchParams(
+        Object.entries(withSource).map(([k, v]) => [k, String(v)]),
+      ).toString()}`;
+      return api.get<ApiResponse<Record<string, unknown>[]>>(
+        `/hr/workers${workersQs}`,
+      );
+    }
     return api.get<ApiResponse<Record<string, unknown>[]>>(`/hr/${resource}${qs}`);
+  },
+
+  /** Paged employee master (SIS = workers, LS = workers_vendor). */
+  listWorkers: (
+    source: "sis" | "vendor" | "ls",
+    params?: Record<string, string | number>,
+  ) => {
+    const cleaned = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(
+            ([, v]) => v !== undefined && v !== null && String(v) !== "",
+          ),
+        )
+      : {};
+    const qs = `?${new URLSearchParams(
+      Object.entries({ ...cleaned, source }).map(([k, v]) => [k, String(v)]),
+    ).toString()}`;
+    return api.get<ApiResponse<Record<string, unknown>[]>>(`/hr/workers${qs}`);
+  },
+
+  /** Full employee master row (joined names). source: sis | vendor | ls */
+  getWorker: (id: string | number, source: "sis" | "vendor" | "ls") => {
+    const qs = `?source=${encodeURIComponent(source)}`;
+    return api.get<ApiResponse<Record<string, unknown>>>(
+      `/hr/workers/${id}${qs}`,
+    );
+  },
+
+  importWorkers: (source: "sis" | "ls", file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    const qs = `?source=${encodeURIComponent(source)}`;
+    return api.post<
+      ApiResponse<{
+        inserted: number;
+        skipped: number;
+        total: number;
+        errors: Array<{ row: number; nrp?: string | null; reason: string }>;
+      }>
+    >(`/hr/workers/import${qs}`, body);
+  },
+
+  downloadWorkersExample: async (source: "sis" | "ls") => {
+    const qs = `?source=${encodeURIComponent(source)}`;
+    const { blob, filename } = await api.downloadGet(`/hr/workers/example${qs}`);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download =
+      filename ||
+      (source === "sis"
+        ? "example_employees_sis.xlsx"
+        : "example_employees_ls.xlsx");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  exportWorkers: async (
+    source: "sis" | "ls",
+    params?: {
+      department?: string;
+      section?: string;
+      job_rank?: string;
+      status_mode?: string;
+      vendor?: string;
+      lokasi_kerja?: string;
+      q?: string;
+    },
+  ) => {
+    const cleaned: Record<string, string> = { source };
+    if (params?.department) cleaned.department = params.department;
+    if (params?.section) cleaned.section = params.section;
+    if (params?.job_rank) cleaned.job_rank = params.job_rank;
+    if (params?.status_mode) cleaned.status_mode = params.status_mode;
+    if (params?.vendor) cleaned.vendor = params.vendor;
+    if (params?.lokasi_kerja) cleaned.lokasi_kerja = params.lokasi_kerja;
+    if (params?.q) cleaned.q = params.q;
+    const qs = `?${new URLSearchParams(cleaned).toString()}`;
+    const { blob, filename } = await api.downloadGet(`/hr/workers/export${qs}`);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download =
+      filename ||
+      (source === "sis" ? "employees_sis.xlsx" : "employees_ls.xlsx");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   },
 
   listStructure: (params?: { type?: string; ref_id?: string | number }) => {

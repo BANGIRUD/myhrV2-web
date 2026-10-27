@@ -96,6 +96,16 @@ export default function App() {
               }
             />
 
+            {/* Employees domain (parent hr_employees) — SIS / LS master lists */}
+            <Route
+              path="/employees/:resource"
+              element={
+                <ProtectedRoute>
+                  <MasterTablePage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Old bookmarks → English module paths */}
             <Route
               path="/master/pola-kerja"

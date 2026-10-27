@@ -219,13 +219,17 @@ export default function EditPolicyFormModal({
                   setForm((prev) => ({ ...prev, can_edit: e.target.checked }))
                 }
               />
-              <span className="text-gray-700 dark:text-gray-200">Can edit</span>
+              <span className="text-gray-700 dark:text-gray-200">
+                {form.module_code === "workers_grade"
+                  ? "Can reveal Grade"
+                  : "Can edit"}
+              </span>
             </label>
             <label className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-sm dark:border-gray-700">
               <input
                 type="checkbox"
                 checked={form.allow_past}
-                disabled={saving}
+                disabled={saving || form.module_code === "workers_grade"}
                 onChange={(e) =>
                   setForm((prev) => ({
                     ...prev,
@@ -250,18 +254,22 @@ export default function EditPolicyFormModal({
               step={1}
               className={fieldClassName}
               value={form.past_days}
-              disabled={saving || form.allow_past}
+              disabled={
+                saving || form.allow_past || form.module_code === "workers_grade"
+              }
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, past_days: e.target.value }))
               }
               required
             />
             <p className="mt-1 text-xs text-gray-400">
-              {form.allow_past
-                ? "Diabaikan saat Allow past aktif."
-                : form.module_code === "sakit"
-                  ? "Sickness: 3 = Ubah dan Batalkan hanya sampai 3 hari sejak tanggal dibuat."
-                  : "0 = hari ini saja; 3 = H-3."}
+              {form.module_code === "workers_grade"
+                ? "Workers Grade: hanya Can reveal Grade yang dipakai (ikon mata di detail karyawan). Past days diabaikan."
+                : form.allow_past
+                  ? "Diabaikan saat Allow past aktif."
+                  : form.module_code === "sakit"
+                    ? "Sickness: 3 = Ubah dan Batalkan hanya sampai 3 hari sejak tanggal dibuat."
+                    : "0 = hari ini saja; 3 = H-3."}
             </p>
           </div>
 

@@ -165,5 +165,8 @@ export function resolveSidebarIcon(
     return ICON_BY_KEY.table;
   }
   if (code.includes("master")) return ICON_BY_KEY.folder;
+  if (code.includes("employee") || code.includes("worker")) {
+    return ICON_BY_KEY.group;
+  }
   return ICON_BY_KEY.grid;
 }

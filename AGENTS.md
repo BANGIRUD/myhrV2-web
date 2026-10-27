@@ -47,6 +47,7 @@ code and are **not routed**. Trim them when convenient; never ship them as produ
 | `/` | `Home` (role dashboard) — protected |
 | `/master/level-permissions` | `LevelPermissionsPage` — matrix editor (superadmin save) |
 | `/master/:resource` | `MasterTablePage` — protected (master data) |
+| `/employees/:resource` | `MasterTablePage` — Employees SIS / LS (`sis`, `ls`; parent `hr_employees`) |
 | `/reconciliation/:resource` | `MasterTablePage` — work-pattern / roster / sickness / permit / finger-error (parent `hr_reconciliation`) |
 | `/section/:resource` | `MasterTablePage` — sickness, permit, fingerprint approval queues |
 | `/group/:resource` | `MasterTablePage` — LS sickness and permit queues (`hr_sickness_group`, `hr_permit_group`) |
@@ -108,6 +109,7 @@ Boot order after login:
 | Parent `menu_code` | Parent URL | Child URL pattern | Route in `App.tsx` |
 | ------------------ | ---------- | ----------------- | ------------------ |
 | `hr_master` | `#` | `/master/<slug>` | `/master/:resource` |
+| `hr_employees` | `#` | `/employees/<slug>` | `/employees/:resource` |
 | `hr_reconciliation` | `#` | `/reconciliation/<slug>` | `/reconciliation/:resource` |
 | future folder `hr_<domain>` | `#` | `/<domain>/<slug>` | add `/<domain>/:resource` (or dedicated page) |
 
@@ -130,6 +132,9 @@ Boot order after login:
 | `hr_enums` | `/master/enums` |
 | `hr_submissions` | `/master/submissions` |
 | `hr_edit_policy` | `/master/edit-policy` |
+| `hr_employees` | `#` (parent folder; children under `/employees/…`) |
+| `hr_employees_sis` | `/employees/sis` |
+| `hr_employees_ls` | `/employees/ls` |
 | `hr_reconciliation` | `#` (parent folder; children under `/reconciliation/…`) |
 | `hr_work_pattern` | `/reconciliation/work-pattern` |
 | `hr_roster` | `/reconciliation/roster` |
@@ -198,6 +203,8 @@ One generic page, driven by `RESOURCE_META` in `MasterTablePage.tsx` and `HrMast
 
 | Resource | Backend | Mode |
 | -------- | ------- | ---- |
+| `sis` | `GET /hr/workers?source=sis` + detail + import/example/export (`/employees/sis`) | list of `hr.workers`; detail modal; Import INSERT-only (new NRP / PKWT); Export; Grade eye + export column via Edit Policy `workers_grade` |
+| `ls` | `GET /hr/workers?source=vendor` + detail + import/export (`/employees/ls`) | list of `hr.workers_vendor` (+ vendor); same Import/Export/Grade rules |
 | `jobsites` | `GET /hr/jobsites` | read-only |
 | `levels` | `GET /hr/levels` | read-only |
 | `users` | `/hr/users[/:id]` + reset-password | CRUD, paged, level/department/section filters |

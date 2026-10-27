@@ -61,6 +61,8 @@ import FingerprintCancelModal from "./FingerprintCancelModal";
 import FingerprintDetailModal from "./FingerprintDetailModal";
 import FingerprintFormModal from "./FingerprintFormModal";
 import FingerprintTable from "./FingerprintTable";
+import EmployeesTable, { toIsoDateOnly } from "./EmployeesTable";
+import EmployeesDetailModal from "./EmployeesDetailModal";
 import SidebarIconPicker from "./SidebarIconPicker";
 
 const CRUD_RESOURCES = new Set<HrMasterResource>(["users", "menus"]);
@@ -76,7 +78,10 @@ const PAGED_RESOURCES = new Set<HrMasterResource>([
   "finger-error",
   "edit-policy",
   "submissions",
+  "sis",
+  "ls",
 ]);
+
 const LEGACY_RESOURCE: Record<string, string> = {
   "pola-kerja": "work-pattern",
   "roster-kerja": "roster",
@@ -107,7 +112,7 @@ function remarkBadgeColor(
   return "light";
 }
 
-type ColumnFormat = "text" | "boolean" | "active" | "remark";
+type ColumnFormat = "text" | "boolean" | "active" | "remark" | "date";
 
 type ColumnDef = {
   key: string;
@@ -125,6 +130,22 @@ type ResourceMeta = {
   columns: ColumnDef[];
 };
 
+const EMPLOYEE_LIST_COLUMNS: ColumnDef[] = [
+  { key: "id", label: "ID", inTable: false },
+  { key: "nrp", label: "NRP" },
+  { key: "full_name", label: "Name" },
+  { key: "jabatan", label: "Jabatan" },
+  { key: "department_name", label: "Department" },
+  { key: "section_name", label: "Section" },
+  { key: "status_name", label: "Status" },
+  { key: "lokasi_kerja", label: "Lokasi" },
+  { key: "staff_nonstaff", label: "Staff / Nonstaff" },
+  { key: "tanggal_masuk", label: "Tanggal Masuk", format: "date" },
+  { key: "gender", label: "Gender", inTable: false },
+  { key: "no_wa", label: "WA", inTable: false },
+  { key: "email_sis", label: "Email", inTable: false },
+];
+
 const RESOURCE_META: Record<HrMasterResource, ResourceMeta> = {
   submissions: {
     title: "Submissions",
@@ -140,6 +161,20 @@ const RESOURCE_META: Record<HrMasterResource, ResourceMeta> = {
       { key: "end_date", label: "End" },
       { key: "progress", label: "Status" },
       { key: "entered_by", label: "Entered by" },
+    ],
+  },
+  sis: {
+    title: "Employees SIS",
+    description: "",
+    columns: EMPLOYEE_LIST_COLUMNS,
+  },
+  ls: {
+    title: "Employees LS",
+    description: "",
+    columns: [
+      ...EMPLOYEE_LIST_COLUMNS.slice(0, 7),
+      { key: "vendor_name", label: "Vendor" },
+      ...EMPLOYEE_LIST_COLUMNS.slice(7),
     ],
   },
   jobsites: {
@@ -500,6 +535,15 @@ function CellValue({
       <Badge size="sm" color={remarkBadgeColor(text)}>
         {text}
       </Badge>
+    );
+  }
+
+  if (format === "date") {
+    const iso = toIsoDateOnly(value);
+    return iso ? (
+      <span className="font-mono text-xs tabular-nums">{iso}</span>
+    ) : (
+      <span className="text-gray-400">—</span>
     );
   }
 
@@ -1422,6 +1466,9 @@ export default function MasterTablePage() {
   const fingerDepartmentPerm = usePermission("hr_finger_error_department");
   const fingerHrPerm = usePermission("hr_finger_error_hr");
   const editPolicyPerm = usePermission("hr_edit_policy");
+  const employeesPerm = usePermission(
+    resource === "ls" ? "hr_employees_ls" : "hr_employees_sis",
+  );
   const isWorkPattern = resource === "work-pattern";
   const isRoster = resource === "roster";
   const isSicknessSection = pathname.startsWith("/section/sickness");
@@ -1486,6 +1533,7 @@ export default function MasterTablePage() {
       levelCode === "sa" ||
       String(user?.worker_scope ?? "").toLowerCase() === "all");
   const isEditPolicy = resource === "edit-policy";
+  const isEmployees = resource === "sis" || resource === "ls";
   const isMonthFiltered =
     isWorkPattern || isRoster || isSickness || isPermit || isFingerprint;
   /** From hr.edit_policy (module roster_kerja) via API; null = unlimited. */
@@ -1504,23 +1552,25 @@ export default function MasterTablePage() {
     }[]
   >([]);
   const [filterEditModule, setFilterEditModule] = useState("roster_kerja");
-  const canInsert = isWorkPattern
-    ? polaPerm.canInsert
-    : isRoster
-      ? false
-      : isSicknessQueue || isFingerprintQueue
+  const canInsert = isEmployees
+    ? employeesPerm.canInsert
+    : isWorkPattern
+      ? polaPerm.canInsert
+      : isRoster
         ? false
-      : isSickness
-        ? sakitPerm.canInsert
-        : isPermitQueue
+        : isSicknessQueue || isFingerprintQueue
           ? false
-          : isPermit
-            ? ijinPerm.canInsert
-            : isFingerprint
-              ? fingerPerm.canInsert
-        : isEditPolicy
-          ? editPolicyPerm.canInsert
-          : CRUD_RESOURCES.has(resource as HrMasterResource);
+          : isSickness
+            ? sakitPerm.canInsert
+            : isPermitQueue
+              ? false
+              : isPermit
+                ? ijinPerm.canInsert
+                : isFingerprint
+                  ? fingerPerm.canInsert
+                  : isEditPolicy
+                    ? editPolicyPerm.canInsert
+                    : CRUD_RESOURCES.has(resource as HrMasterResource);
   const canUpdate = isWorkPattern
     ? polaPerm.canUpdate
     : isRoster
@@ -1555,23 +1605,29 @@ export default function MasterTablePage() {
         : isEditPolicy
           ? editPolicyPerm.canDelete
           : CRUD_RESOURCES.has(resource as HrMasterResource);
-  const canExport = isWorkPattern
-    ? polaPerm.canExport || polaPerm.canRead
-    : isRoster
-      ? rosterPerm.canExport || rosterPerm.canRead
-      : isSicknessHr
-        ? sakitHrPerm.canRead || sakitHrPerm.canApprove || sakitHrPerm.canExport
-        : isPermitHr
-          ? ijinHrPerm.canRead || ijinHrPerm.canApprove || ijinHrPerm.canExport
-          : isFingerprintHr
-            ? fingerHrPerm.canRead ||
-              fingerHrPerm.canApprove ||
-              fingerHrPerm.canExport
-        : isSicknessQueue || isFingerprintQueue
-          ? false
-          : isSickness
-            ? sakitPerm.canExport
-            : false;
+  const canExport = isEmployees
+    ? employeesPerm.canExport
+    : isWorkPattern
+      ? polaPerm.canExport || polaPerm.canRead
+      : isRoster
+        ? rosterPerm.canExport || rosterPerm.canRead
+        : isSicknessHr
+          ? sakitHrPerm.canRead ||
+            sakitHrPerm.canApprove ||
+            sakitHrPerm.canExport
+          : isPermitHr
+            ? ijinHrPerm.canRead ||
+              ijinHrPerm.canApprove ||
+              ijinHrPerm.canExport
+            : isFingerprintHr
+              ? fingerHrPerm.canRead ||
+                fingerHrPerm.canApprove ||
+                fingerHrPerm.canExport
+              : isSicknessQueue || isFingerprintQueue
+                ? false
+                : isSickness
+                  ? sakitPerm.canExport
+                  : false;
   const canGenerate = isWorkPattern && (canInsert || canUpdate);
   const canMutate = canInsert || canUpdate || canDelete;
   const useServerPaging = PAGED_RESOURCES.has(resource as HrMasterResource);
@@ -1596,6 +1652,9 @@ export default function MasterTablePage() {
     return /^\d{4}-\d{2}$/.test(q) ? q : currentMonthValue();
   });
   const [filterJobRank, setFilterJobRank] = useState("");
+  /** Employees list: active (default) | inactive | all */
+  const [filterEmploymentStatus, setFilterEmploymentStatus] =
+    useState("active");
   const [filterProgress, setFilterProgress] = useState("");
   const [filterStatusWorker, setFilterStatusWorker] = useState("");
   const [jobRanks, setJobRanks] = useState<{ id: number; name: string }[]>([]);
@@ -1685,6 +1744,13 @@ export default function MasterTablePage() {
 
       if (resource === "enums" && filterEnumType) {
         listParams.type = filterEnumType;
+      }
+
+      if (isEmployees) {
+        if (filterDepartment) listParams.department = filterDepartment;
+        if (filterSection) listParams.section = filterSection;
+        if (filterJobRank) listParams.job_rank = filterJobRank;
+        listParams.status_mode = filterEmploymentStatus || "active";
       }
 
       if (isMonthFiltered) {
@@ -1796,6 +1862,7 @@ export default function MasterTablePage() {
     filterEnumType,
     filterMonth,
     filterJobRank,
+    filterEmploymentStatus,
     filterProgress,
     filterStatusWorker,
     filterEditModule,
@@ -1818,6 +1885,7 @@ export default function MasterTablePage() {
     isFingerprintDepartment,
     isFingerprintHr,
     fingerHrCanFilterType,
+    isEmployees,
   ]);
 
   const loadEnumTypes = useCallback(async () => {
@@ -1909,7 +1977,7 @@ export default function MasterTablePage() {
   }, [resource]);
 
   const loadMonthFilterLookups = useCallback(async () => {
-    if (!isMonthFiltered) return;
+    if (!isMonthFiltered && !isEmployees) return;
     try {
       const [deptResult, sectionResult, positionResult] = await Promise.all([
         hrMasterService.listStructure({ type: "department" }),
@@ -1941,7 +2009,7 @@ export default function MasterTablePage() {
     } catch {
       // Lookups are optional; filters degrade gracefully.
     }
-  }, [isMonthFiltered]);
+  }, [isMonthFiltered, isEmployees]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1967,6 +2035,7 @@ export default function MasterTablePage() {
       setFilterMonth(/^\d{4}-\d{2}$/.test(q) ? q : currentMonthValue());
     }
     setFilterJobRank("");
+    setFilterEmploymentStatus("active");
     setJobRanks([]);
     setEnumTypes([]);
     setMenuParents([]);
@@ -1994,6 +2063,7 @@ export default function MasterTablePage() {
     filterEnumType,
     filterMonth,
     filterJobRank,
+    filterEmploymentStatus,
     filterEditModule,
   ]);
 
@@ -2523,9 +2593,11 @@ export default function MasterTablePage() {
                 {(useServerPaging ? total : rows.length) === 1 ? "" : "s"}
               </Badge>
             </div>
-            <p className="max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-              {meta.description}
-            </p>
+            {meta.description ? (
+              <p className="max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+                {meta.description}
+              </p>
+            ) : null}
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             {isWorkPattern && (
@@ -2536,7 +2608,7 @@ export default function MasterTablePage() {
                 Lihat Roster
               </Link>
             )}
-            {canExport && isMonthFiltered && (
+            {canExport && (isMonthFiltered || isEmployees) && (
               <Button
                 size="sm"
                 variant="outline"
@@ -2545,42 +2617,57 @@ export default function MasterTablePage() {
                 onClick={async () => {
                   setExportLoading(true);
                   try {
-                    const exportParams = {
-                      month: filterMonth,
-                      department: filterDepartment || undefined,
-                      section: filterSection || undefined,
-                      job_rank: filterJobRank || undefined,
-                      progress: filterProgress || undefined,
-                      status_worker:
-                        (isSicknessHr && sakitHrCanFilterType) ||
-                        (isPermitHr && ijinHrCanFilterType) ||
-                        (isFingerprintHr && fingerHrCanFilterType)
-                          ? filterStatusWorker || undefined
-                          : undefined,
-                      q: search || undefined,
-                    };
-                    if (isFingerprintHr) {
-                      await hrMasterService.exportFingerErrorHr(exportParams);
-                    } else if (isPermitHr) {
-                      await hrMasterService.exportPermitHr(exportParams);
-                    } else if (isSicknessHr) {
-                      await hrMasterService.exportSicknessHr(exportParams);
-                    } else if (isRoster) {
-                      await hrMasterService.exportRoster(exportParams);
+                    if (isEmployees) {
+                      await hrMasterService.exportWorkers(
+                        resource === "ls" ? "ls" : "sis",
+                        {
+                          department: filterDepartment || undefined,
+                          section: filterSection || undefined,
+                          job_rank: filterJobRank || undefined,
+                          status_mode: filterEmploymentStatus || "active",
+                          q: search || undefined,
+                        },
+                      );
                     } else {
-                      await hrMasterService.exportWorkPattern(exportParams);
+                      const exportParams = {
+                        month: filterMonth,
+                        department: filterDepartment || undefined,
+                        section: filterSection || undefined,
+                        job_rank: filterJobRank || undefined,
+                        progress: filterProgress || undefined,
+                        status_worker:
+                          (isSicknessHr && sakitHrCanFilterType) ||
+                          (isPermitHr && ijinHrCanFilterType) ||
+                          (isFingerprintHr && fingerHrCanFilterType)
+                            ? filterStatusWorker || undefined
+                            : undefined,
+                        q: search || undefined,
+                      };
+                      if (isFingerprintHr) {
+                        await hrMasterService.exportFingerErrorHr(exportParams);
+                      } else if (isPermitHr) {
+                        await hrMasterService.exportPermitHr(exportParams);
+                      } else if (isSicknessHr) {
+                        await hrMasterService.exportSicknessHr(exportParams);
+                      } else if (isRoster) {
+                        await hrMasterService.exportRoster(exportParams);
+                      } else {
+                        await hrMasterService.exportWorkPattern(exportParams);
+                      }
                     }
                   } catch (err) {
                     setError(
                       err instanceof ApiError
                         ? err.message
-                        : isFingerprintHr
-                          ? "Export fingerprint personalia gagal."
-                        : isSicknessHr
-                          ? "Export sakit personalia gagal."
-                          : isRoster
-                            ? "Export roster kerja gagal."
-                            : "Export pola kerja gagal.",
+                        : isEmployees
+                          ? "Export karyawan gagal."
+                          : isFingerprintHr
+                            ? "Export fingerprint personalia gagal."
+                            : isSicknessHr
+                              ? "Export sakit personalia gagal."
+                              : isRoster
+                                ? "Export roster kerja gagal."
+                                : "Export pola kerja gagal.",
                     );
                   } finally {
                     setExportLoading(false);
@@ -2620,7 +2707,7 @@ export default function MasterTablePage() {
                 Import
               </Button>
             )}
-            {canInsert && (
+            {canInsert && !isEmployees && (
               <Button size="sm" className="!py-2.5" onClick={openCreate}>
                 Add{" "}
                 {resource === "users"
@@ -2774,7 +2861,7 @@ export default function MasterTablePage() {
           </>
         )}
 
-        {isMonthFiltered && (
+        {(isMonthFiltered || isEmployees) && (
           <div
             className={`grid gap-3 rounded-xl border border-gray-200 bg-slate-50/70 p-4 dark:border-gray-800 dark:bg-white/[0.02] sm:grid-cols-2 ${
               isSickness || isPermit || isFingerprint
@@ -2782,6 +2869,7 @@ export default function MasterTablePage() {
                 : "lg:grid-cols-4"
             }`}
           >
+            {isMonthFiltered && (
             <label className="block text-sm">
               <span className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
                 Bulan
@@ -2797,6 +2885,7 @@ export default function MasterTablePage() {
                 inputClassName={`${fieldClassName} bg-white pr-10 dark:bg-gray-900`}
               />
             </label>
+            )}
             <label className="block text-sm">
               <span className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
                 Department
@@ -2866,6 +2955,26 @@ export default function MasterTablePage() {
                 ))}
               </select>
             </label>
+            {isEmployees && (
+              <label className="block text-sm">
+                <span className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Status Karyawan
+                </span>
+                <select
+                  className={`${fieldClassName} bg-white dark:bg-gray-900`}
+                  value={filterEmploymentStatus}
+                  onChange={(e) => {
+                    setFilterEmploymentStatus(e.target.value || "active");
+                    setPage(1);
+                  }}
+                  aria-label="Filter by employment status"
+                >
+                  <option value="active">Aktif</option>
+                  <option value="inactive">Non-aktif (PHK & lainnya)</option>
+                  <option value="all">Semua</option>
+                </select>
+              </label>
+            )}
             {(isSickness || isPermit || isFingerprint) && (
               <>
                 <label className="block text-sm">
@@ -3083,6 +3192,17 @@ export default function MasterTablePage() {
                   : { header: "Atasan / HR", short: "Atasan", perRow: true }
             }
           />
+        ) : isEmployees ? (
+          <EmployeesTable
+            rows={filtered}
+            loading={loading}
+            selected={selected}
+            onSelect={setSelected}
+            startNo={showingFrom || 1}
+            searchHint={Boolean(searchInput.trim())}
+            showVendor={resource === "ls"}
+            title={meta.title}
+          />
         ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
           <div className="relative">
@@ -3201,6 +3321,8 @@ export default function MasterTablePage() {
           <p>
             {isWorkPattern
               ? "Klik baris untuk detail / edit. Karyawan dikelompokkan agar lebih mudah dipindai."
+              : isEmployees
+                ? "Diurutkan department → section → nama. Klik baris untuk detail."
               : isRoster
                 ? "Klik baris untuk ubah Status Absen (D / N / OFF). Jendela edit (H-n) mengikuti hr.roster_edit_policy per level."
               : isFingerprintHr
@@ -3278,7 +3400,8 @@ export default function MasterTablePage() {
           !isRoster &&
           !isSickness &&
           !isPermit &&
-          !isFingerprint
+          !isFingerprint &&
+          !isEmployees
         }
         title={meta.title}
         row={selected}
@@ -3295,6 +3418,13 @@ export default function MasterTablePage() {
         onEdit={openEdit}
         onDelete={handleDelete}
         deleteLoading={deleteLoading}
+      />
+
+      <EmployeesDetailModal
+        open={selected != null && isEmployees && !formOpen}
+        row={selected}
+        showVendor={resource === "ls"}
+        onClose={closeDetail}
       />
 
       {canMutate && (resource === "users" || resource === "menus") && (
