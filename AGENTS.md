@@ -48,6 +48,7 @@ code and are **not routed**. Trim them when convenient; never ship them as produ
 | `/master/level-permissions` | `LevelPermissionsPage` — matrix editor (superadmin save) |
 | `/master/:resource` | `MasterTablePage` — protected (master data) |
 | `/employees/:resource` | `MasterTablePage` — Employees SIS / LS (`sis`, `ls`; parent `hr_employees`) |
+| `/reconciliation/finger-pulse` | `FingerPulsePage` — gabungan punch mesin + OAMS; manual Pulse/Reconcile/Backfill for superadmin / hr_administrator |
 | `/reconciliation/:resource` | `MasterTablePage` — work-pattern / roster / sickness / permit / finger-error (parent `hr_reconciliation`) |
 | `/section/:resource` | `MasterTablePage` — sickness, permit, fingerprint approval queues |
 | `/group/:resource` | `MasterTablePage` — LS sickness and permit queues (`hr_sickness_group`, `hr_permit_group`) |
@@ -149,6 +150,7 @@ Boot order after login:
 | `hr_permit_department` | `/department/permit` |
 | `hr_permit_hr` | `/personalia/permit` |
 | `hr_finger_error` | `/reconciliation/finger-error` |
+| `hr_finger_pulse` | `/reconciliation/finger-pulse` |
 | `hr_finger_error_section` | `/section/finger-error` |
 | `hr_finger_error_group` | `/group/finger-error` |
 | `hr_finger_error_department` | `/department/finger-error` |

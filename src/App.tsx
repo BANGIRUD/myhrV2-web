@@ -16,6 +16,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 // import PortalHome from "./pages/Portal/PortalHome";
 import MasterTablePage from "./pages/Master/MasterTablePage";
 import LevelPermissionsPage from "./pages/Master/LevelPermissionsPage";
+import FingerPulsePage from "./pages/Reconciliation/FingerPulsePage";
 
 /** Keep ?month=… when bouncing old /master/… bookmarks. */
 function PreserveSearchRedirect({ to }: { to: string }) {
@@ -87,6 +88,14 @@ export default function App() {
             />
 
             {/* Reconciliation domain (parent hr_reconciliation) — not under /master */}
+            <Route
+              path="/reconciliation/finger-pulse"
+              element={
+                <ProtectedRoute>
+                  <FingerPulsePage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/reconciliation/:resource"
               element={

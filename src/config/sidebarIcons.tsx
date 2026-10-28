@@ -147,6 +147,8 @@ export function resolveSidebarIcon(
   if (
     code.includes("finger_error") ||
     code.includes("finger-error") ||
+    code.includes("finger_pulse") ||
+    code.includes("finger-pulse") ||
     code.includes("fingerprint")
   ) {
     return ICON_BY_KEY.time;
